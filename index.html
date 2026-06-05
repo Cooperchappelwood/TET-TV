@@ -45,8 +45,8 @@ body{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh;padding:cla
 .panel-title{font-size:clamp(10px,1vw,13px);letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:clamp(8px,1vh,14px);flex-shrink:0;font-weight:500}
 
 /* EVENT LIST */
-.event-list{display:flex;flex-direction:column;gap:clamp(5px,0.7vh,10px);flex:1;overflow:hidden}
-.event-card{background:var(--s2);border-radius:clamp(6px,0.8vw,10px);display:grid;grid-template-columns:clamp(90px,11vw,160px) 1px 1fr;align-items:stretch;border-left:clamp(3px,0.3vw,5px) solid;flex:1;overflow:hidden;min-height:0}
+.event-list{display:grid;grid-template-columns:1fr 1fr;gap:clamp(5px,0.7vh,10px);flex:1;overflow:hidden;align-content:start}
+.event-card{background:var(--s2);border-radius:clamp(6px,0.8vw,10px);display:grid;grid-template-columns:clamp(80px,9vw,130px) 1px 1fr;align-items:stretch;border-left:clamp(3px,0.3vw,5px) solid;overflow:hidden}
 .ec-counts{display:grid;grid-template-rows:1fr 1px 1fr;flex-shrink:0}
 .ec-count{display:flex;align-items:center;gap:clamp(5px,0.6vw,10px);padding:clamp(6px,0.8vh,12px) clamp(8px,1vw,14px) clamp(6px,0.8vh,12px) clamp(10px,1.2vw,16px)}
 .ec-count-divider{background:var(--border2)}
