@@ -1,688 +1,165 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Event Team — Office Board</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --gold:#D4A843;--gold-dim:#6e510f;
-  --bg:#070707;--s1:#0e0e0e;--s2:#161616;--s3:#1d1d1d;
-  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.13);
-  --text:#edeae1;--muted:#888480;--muted2:#555;
-}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
-body{display:grid;grid-template-rows:auto auto 1fr auto;height:100vh;padding:clamp(10px,1.2vh,20px) clamp(12px,1.5vw,28px);gap:clamp(6px,0.8vh,12px)}
+// ═══════════════════════════════════════════════════════════════════
+//  THE EVENT TEAM — Office Board Google Apps Script
+//  Paste this entire file into your Google Apps Script editor,
+//  then redeploy (Deploy → Manage Deployments → edit → New Version)
+// ═══════════════════════════════════════════════════════════════════
+//
+//  SHEET STRUCTURE (3 tabs):
+//
+//  Tab: "Events"
+//  Columns: name | date | location | color
+//
+//  Tab: "Settings"
+//  Columns: key | value
+//  Rows:    officeDays | 1,2,3,4,5
+//           logoUrl    | (optional URL)
+//
+//  Tab: "Closures"
+//  Columns: date | note
+//
+// ═══════════════════════════════════════════════════════════════════
 
-/* TOPBAR */
-.topbar{display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.logo-wrap{display:flex;align-items:center;gap:clamp(8px,1vw,16px)}
-.logo-img{height:clamp(24px,3.2vh,44px);width:auto;filter:brightness(0) invert(1);opacity:.88;object-fit:contain}
-.logo-div{width:1px;height:clamp(18px,2.4vh,32px);background:var(--border2)}
-.tagline{font-size:clamp(9px,0.9vw,13px);letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
-.clock-wrap{text-align:right}
-.clock{font-family:'DM Mono',monospace;font-size:clamp(22px,3vw,42px);font-weight:500;line-height:1;color:var(--text)}
-.dateline{font-size:clamp(10px,1vw,14px);letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:2px}
-
-/* HERO */
-.hero{display:grid;grid-template-columns:auto 1px auto 1px 1fr;align-items:center;padding:0 clamp(14px,2vw,28px);background:var(--s1);border:1px solid var(--border);border-radius:clamp(8px,1vw,14px);position:relative;overflow:hidden;flex-shrink:0}
-.hero-block{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:clamp(8px,1vh,14px) clamp(14px,2vw,28px) clamp(8px,1vh,14px) clamp(6px,0.8vw,12px)}
-.hero-vdiv{width:1px;height:clamp(32px,5vh,60px);background:var(--border2)}
-.hero-num{font-family:'Bebas Neue',sans-serif;line-height:.88;letter-spacing:-1px}
-.hero-big{font-size:clamp(52px,9vw,130px)}
-.hero-mid{font-size:clamp(38px,6.5vw,90px)}
-.hero-lbl{font-size:clamp(10px,1vw,14px);letter-spacing:2px;text-transform:uppercase;margin-top:clamp(2px,0.4vh,6px);white-space:nowrap;color:var(--muted);font-weight:500}
-.hero-info{padding:clamp(8px,1vh,14px) clamp(8px,1vw,14px) clamp(8px,1vh,14px) clamp(16px,2vw,28px)}
-.hero-tag{font-size:clamp(10px,1vw,14px);letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:clamp(4px,0.5vh,8px);font-weight:500}
-.hero-name{font-size:clamp(20px,3vw,44px);font-weight:400;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.3px}
-.hero-date{font-size:clamp(12px,1.2vw,18px);color:var(--muted);margin-top:clamp(2px,0.4vh,6px)}
-
-/* MAIN */
-.main{display:grid;grid-template-columns:1fr clamp(200px,22vw,340px);gap:clamp(6px,0.8vh,12px);min-height:0}
-.panel{background:var(--s1);border:1px solid var(--border);border-radius:clamp(8px,1vw,14px);padding:clamp(10px,1.2vh,18px) clamp(10px,1.2vw,18px);display:flex;flex-direction:column;overflow:hidden;min-height:0}
-.panel-title{font-size:clamp(10px,1vw,13px);letter-spacing:2.5px;text-transform:uppercase;color:var(--muted);margin-bottom:clamp(8px,1vh,14px);flex-shrink:0;font-weight:500}
-
-/* EVENT LIST */
-.event-list{display:flex;flex-direction:column;gap:clamp(5px,0.7vh,10px);flex:1;overflow:hidden}
-.event-card{background:var(--s2);border-radius:clamp(6px,0.8vw,10px);display:grid;grid-template-columns:clamp(90px,11vw,160px) 1px 1fr;align-items:stretch;border-left:clamp(3px,0.3vw,5px) solid;flex:1;overflow:hidden;min-height:0}
-.ec-counts{display:grid;grid-template-rows:1fr 1px 1fr;flex-shrink:0}
-.ec-count{display:flex;align-items:center;gap:clamp(5px,0.6vw,10px);padding:clamp(6px,0.8vh,12px) clamp(8px,1vw,14px) clamp(6px,0.8vh,12px) clamp(10px,1.2vw,16px)}
-.ec-count-divider{background:var(--border2)}
-.ec-num{font-family:'Bebas Neue',sans-serif;line-height:1;flex-shrink:0}
-.ec-num-big{font-size:clamp(26px,3.5vw,52px)}
-.ec-num-sm{font-size:clamp(20px,2.6vw,38px)}
-.ec-lbl{font-size:clamp(9px,0.85vw,13px);text-transform:uppercase;letter-spacing:.8px;color:var(--muted);line-height:1.3;font-weight:500}
-.ec-vdiv{width:1px;background:var(--border2)}
-.ec-info{padding:clamp(6px,0.8vh,12px) clamp(10px,1.2vw,18px);display:flex;flex-direction:column;justify-content:center;min-width:0}
-.ec-name{font-weight:600;font-size:clamp(13px,1.6vw,24px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);letter-spacing:-0.2px}
-.ec-meta{font-size:clamp(10px,1vw,15px);color:var(--muted);margin-top:clamp(2px,0.3vh,5px)}
-.ec-note{font-size:clamp(9px,0.85vw,13px);color:var(--muted2);margin-top:clamp(2px,0.3vh,4px)}
-
-/* RIGHT / WEATHER */
-.right-col{display:flex;flex-direction:column;gap:clamp(6px,0.8vh,12px);min-height:0}
-.wx-now{display:flex;align-items:center;gap:clamp(8px,1vw,16px);margin-bottom:clamp(6px,0.8vh,12px);flex-shrink:0}
-.wx-icon{font-size:clamp(32px,4.5vw,64px);line-height:1}
-.wx-temp{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,6vw,84px);line-height:1;color:var(--text)}
-.wx-desc{font-size:clamp(11px,1.1vw,16px);color:var(--muted);line-height:1.7}
-.wx-fc{display:flex;gap:clamp(4px,0.5vw,8px)}
-.wx-day{flex:1;background:var(--s2);border-radius:clamp(5px,0.7vw,9px);padding:clamp(5px,0.7vh,10px) clamp(3px,0.3vw,6px);text-align:center}
-.wx-day-name{color:var(--muted);margin-bottom:clamp(2px,0.3vh,4px);font-size:clamp(10px,1vw,14px);font-weight:500;text-transform:uppercase;letter-spacing:1px}
-.wx-day-icon{font-size:clamp(16px,2vw,28px);margin:clamp(2px,0.3vh,4px) 0}
-.wx-day-temp{font-weight:600;font-size:clamp(11px,1.1vw,16px)}
-
-/* FUN STRIP */
-.fun-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:clamp(6px,0.8vw,12px);flex-shrink:0}
-.fun-card{background:var(--s1);border:1px solid var(--border);border-radius:clamp(7px,0.9vw,12px);padding:clamp(8px,1vh,14px) clamp(12px,1.5vw,20px);display:flex;align-items:center;gap:clamp(8px,1vw,14px);overflow:hidden}
-.fun-emoji{font-size:clamp(18px,2.2vw,32px);flex-shrink:0}
-.fun-lbl{font-size:clamp(9px,0.9vw,13px);letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:clamp(2px,0.3vh,4px);font-weight:500}
-.fun-text{font-size:clamp(11px,1.1vw,16px);color:var(--text);line-height:1.35}
-
-/* SYNC STATUS */
-.sync-pill{position:fixed;top:clamp(10px,1.2vh,18px);left:50%;transform:translateX(-50%);background:var(--s2);border:1px solid var(--border2);border-radius:20px;padding:4px 14px;font-size:11px;color:var(--muted);letter-spacing:1px;z-index:50;transition:opacity .5s;opacity:0;pointer-events:none}
-.sync-pill.show{opacity:1}
-.sync-pill.ok{color:#6BBF72;border-color:rgba(107,191,114,0.3)}
-.sync-pill.err{color:#E8644A;border-color:rgba(232,100,74,0.3)}
-
-/* GEAR */
-.gear-btn{position:fixed;bottom:clamp(10px,1.2vh,18px);right:clamp(12px,1.5vw,20px);background:var(--s2);border:1px solid var(--border);border-radius:50%;width:clamp(28px,3vh,40px);height:clamp(28px,3vh,40px);cursor:pointer;color:var(--muted);font-size:clamp(13px,1.5vh,20px);display:flex;align-items:center;justify-content:center;z-index:100;transition:color .2s,border-color .2s}
-.gear-btn:hover{color:var(--gold);border-color:var(--gold-dim)}
-
-/* OVERLAY / MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:200;align-items:center;justify-content:center}
-.overlay.open{display:flex}
-.modal{background:#101010;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:24px 28px;width:min(720px,94vw);max-height:92vh;overflow-y:auto;position:relative}
-.modal h2{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--gold);margin-bottom:4px}
-.modal-source-tabs{display:flex;gap:6px;margin-bottom:18px;margin-top:10px}
-.tab-btn{background:var(--s2);border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 16px;cursor:pointer;transition:color .2s,border-color .2s,background .2s}
-.tab-btn.active{background:var(--gold);color:#080808;border-color:var(--gold);font-weight:600}
-.tab-pane{display:none}
-.tab-pane.active{display:block}
-.msec{margin-bottom:20px}
-.msec h3{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;border-bottom:1px solid var(--border);padding-bottom:4px;font-weight:500}
-.hint{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6}
-.hint a{color:var(--gold);text-decoration:none}
-.hint a:hover{text-decoration:underline}
-.sheet-status{font-size:12px;margin-top:8px;padding:8px 12px;border-radius:6px;display:none}
-.sheet-status.ok{background:rgba(107,191,114,0.1);border:1px solid rgba(107,191,114,0.3);color:#6BBF72;display:block}
-.sheet-status.err{background:rgba(232,100,74,0.1);border:1px solid rgba(232,100,74,0.3);color:#E8644A;display:block}
-
-.er-wrap{margin-bottom:10px;background:var(--s2);border-radius:8px;padding:10px 12px}
-.er-row1{display:grid;grid-template-columns:1fr 140px 32px 32px;gap:6px;align-items:center;margin-bottom:6px}
-.er-row2{display:grid;grid-template-columns:1fr;gap:6px}
-
-input[type="text"],input[type="date"],input[type="url"]{background:var(--s3);border:1px solid rgba(255,255,255,0.09);border-radius:6px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:7px 10px;width:100%;outline:none}
-input[type="color"]{-webkit-appearance:none;appearance:none;width:32px;height:32px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;padding:2px;background:var(--s3)}
-input[type="color"]::-webkit-color-swatch-wrapper{padding:0;border-radius:4px}
-input[type="color"]::-webkit-color-swatch{border:none;border-radius:3px}
-input:focus{border-color:var(--gold-dim)}
-input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.5);cursor:pointer}
-textarea{background:var(--s3);border:1px solid rgba(255,255,255,0.09);border-radius:6px;color:var(--text);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;width:100%;outline:none;resize:vertical;line-height:1.5}
-textarea:focus{border-color:var(--gold-dim)}
-.btn-del{background:none;border:1px solid rgba(255,255,255,0.08);border-radius:5px;color:#c94a35;cursor:pointer;font-size:15px;width:32px;height:32px;display:flex;align-items:center;justify-content:center}
-.btn-add{background:none;border:1px dashed rgba(255,255,255,0.1);border-radius:6px;color:var(--muted);cursor:pointer;font-size:13px;padding:7px 12px;width:100%;margin-top:4px;transition:color .2s,border-color .2s}
-.btn-add:hover{color:var(--gold);border-color:var(--gold-dim)}
-.btn-save{background:var(--gold);border:none;border-radius:8px;color:#080808;font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;padding:10px 26px;cursor:pointer;margin-top:4px}
-.btn-save:hover{opacity:.85}
-.btn-test{background:none;border:1px solid var(--border2);border-radius:6px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:13px;padding:7px 16px;cursor:pointer;margin-top:6px;transition:color .2s}
-.btn-test:hover{color:var(--gold)}
-.close-btn{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer}
-.close-btn:hover{color:var(--text)}
-.logo-preview{margin-top:8px;display:flex;align-items:center;gap:10px}
-.logo-preview img{height:28px;filter:brightness(0) invert(1);opacity:.8;border:1px solid var(--border);border-radius:5px;padding:3px 8px;background:var(--s2)}
-.days-grid{display:flex;gap:10px;flex-wrap:wrap}
-.days-grid label{display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer}
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
-</style>
-</head>
-<body>
-
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="logo-wrap">
-    <img class="logo-img" id="logoImg"
-      src="https://static.wixstatic.com/media/d4374a_ca8e69763c6d4e0c8113f4400010c4a7%7Emv2.png/v1/fit/w_400,h_200,al_c/d4374a_ca8e69763c6d4e0c8113f4400010c4a7%7Emv2.png"
-      alt="The Event Team"
-      onerror="this.style.display='none';document.getElementById('logoFb').style.display='block'">
-    <span id="logoFb" style="display:none;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;color:var(--gold)">THE EVENT TEAM</span>
-    <div class="logo-div"></div>
-    <div class="tagline">Western Australia's Leading Event Management</div>
-  </div>
-  <div class="clock-wrap">
-    <div class="clock" id="clock">--:--:--</div>
-    <div class="dateline" id="dateline"></div>
-  </div>
-</div>
-
-<!-- HERO -->
-<div class="hero" id="heroEl">
-  <div id="heroAccent" style="position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--gold);border-radius:14px 0 0 14px"></div>
-  <div class="hero-block">
-    <div class="hero-num hero-big" id="hTotalNum">--</div>
-    <div class="hero-lbl">Total Days</div>
-  </div>
-  <div class="hero-vdiv"></div>
-  <div class="hero-block">
-    <div class="hero-num hero-mid" id="hOfficeNum">--</div>
-    <div class="hero-lbl">Office Days</div>
-  </div>
-  <div class="hero-vdiv"></div>
-  <div class="hero-info">
-    <div class="hero-tag">Next Event</div>
-    <div class="hero-name" id="hName">Loading...</div>
-    <div class="hero-date" id="hDate"></div>
-  </div>
-</div>
-
-<!-- MAIN -->
-<div class="main">
-  <div class="panel">
-    <div class="panel-title" id="evListTitle">Other Upcoming Events</div>
-    <div class="event-list" id="eventList"></div>
-  </div>
-  <div class="right-col">
-    <div class="panel" style="flex:1">
-      <div class="panel-title">Perth Weather</div>
-      <div class="wx-now">
-        <div class="wx-icon" id="wIcon">☀️</div>
-        <div>
-          <div class="wx-temp" id="wTemp">--°</div>
-          <div class="wx-desc" id="wDesc">Fetching...</div>
-        </div>
-      </div>
-      <div class="wx-fc" id="wFc"></div>
-    </div>
-  </div>
-</div>
-
-<!-- FUN STRIP -->
-<div class="fun-strip">
-  <div class="fun-card">
-    <div class="fun-emoji" id="ndEmoji">🎉</div>
-    <div>
-      <div class="fun-lbl">National Day</div>
-      <div class="fun-text" id="ndText">Loading...</div>
-    </div>
-  </div>
-  <div class="fun-card">
-    <div class="fun-emoji">🎂</div>
-    <div>
-      <div class="fun-lbl">Famous Birthdays</div>
-      <div class="fun-text" id="bdText">Loading...</div>
-    </div>
-  </div>
-  <div class="fun-card">
-    <div class="fun-emoji">⚡</div>
-    <div>
-      <div class="fun-lbl">Fun Fact</div>
-      <div class="fun-text" id="ffText">Loading...</div>
-    </div>
-  </div>
-</div>
-
-<!-- SYNC PILL -->
-<div class="sync-pill" id="syncPill">⟳ Syncing...</div>
-
-<!-- GEAR -->
-<button class="gear-btn" onclick="openSettings()" title="Settings (E)">⚙</button>
-
-<!-- SETTINGS OVERLAY -->
-<div class="overlay" id="overlay" onclick="if(event.target===this)closeSettings()">
-  <div class="modal">
-    <button class="close-btn" onclick="closeSettings()">×</button>
-    <h2>Board Settings</h2>
-
-    <!-- Source tabs -->
-    <div class="modal-source-tabs">
-      <button class="tab-btn active" id="tab-local" onclick="switchTab('local')">✏️ Edit Here</button>
-      <button class="tab-btn" id="tab-sheet" onclick="switchTab('sheet')">📊 Google Sheet</button>
-    </div>
-
-    <!-- LOCAL TAB -->
-    <div class="tab-pane active" id="pane-local">
-
-      <div class="msec">
-        <h3>Logo</h3>
-        <input type="url" id="logoUrl" placeholder="Paste image URL — leave blank for default TET logo">
-        <div class="logo-preview">
-          <img id="lpImg" src="" alt="preview" onerror="this.style.display='none'">
-          <span id="lpEmpty" style="font-size:11px;color:var(--muted)">Enter a URL to preview</span>
-        </div>
-        <div class="hint" style="margin-top:6px">Or upload a file:</div>
-        <input type="file" id="logoFile" accept="image/*" style="margin-top:5px;font-size:11px;color:var(--muted)">
-      </div>
-
-      <div class="msec">
-        <h3>Events — name, date, location &amp; colour</h3>
-        <div id="eventEditor"></div>
-        <button class="btn-add" onclick="addEventRow()">+ Add event</button>
-      </div>
-
-      <div class="msec">
-        <h3>Office Days</h3>
-        <div class="days-grid" id="officeDayPicker"></div>
-      </div>
-
-      <div class="msec">
-        <h3>Extra Closure Days</h3>
-        <div class="hint" style="margin-bottom:6px">One per line (YYYY-MM-DD). WA public holidays excluded automatically.</div>
-        <textarea id="closureDates" rows="4" placeholder="2026-08-07&#10;2026-12-27"></textarea>
-      </div>
-
-      <button class="btn-save" onclick="saveLocal()">Save &amp; Apply</button>
-    </div>
-
-    <!-- SHEET TAB -->
-    <div class="tab-pane" id="pane-sheet">
-      <div class="msec">
-        <h3>Connect your Google Sheet</h3>
-        <div class="hint" style="margin-bottom:10px">
-          Paste your Apps Script Web App URL below. The board will pull data from your sheet every 5 minutes — update the sheet from anywhere and the TV refreshes automatically.<br><br>
-          <strong style="color:var(--text)">Haven't set up your sheet yet?</strong> See the setup guide in the <code>google-apps-script.js</code> file included with this download.
-        </div>
-        <input type="url" id="sheetUrl" placeholder="https://script.google.com/macros/s/YOUR_ID/exec">
-        <button class="btn-test" onclick="testSheetConnection()">Test Connection</button>
-        <div class="sheet-status" id="sheetStatus"></div>
-        <div class="hint" style="margin-top:12px">
-          When a sheet URL is connected, it overrides the local settings above. To go back to local editing, clear this field and save.
-        </div>
-      </div>
-      <button class="btn-save" onclick="saveSheetUrl()">Save Sheet URL</button>
-    </div>
-
-  </div>
-</div>
-
-<script>
-// ═══════════════════════════════════════════
-//  CONSTANTS
-// ═══════════════════════════════════════════
-const MONTHS  = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const DAYS_SH = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const DAYS_LG = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const DEFAULT_COLORS = ['#E8644A','#4A9EE8','#6BBF72','#C07FE8','#E8B84A','#E84A8A','#4AE8D4','#E8A04A'];
-
-const WX_ICONS={0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️',99:'⛈️'};
-const WX_DESC={0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Foggy',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Heavy showers',82:'Violent showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
-
-const DEFAULT_EVENTS=[
-  {name:"Backroads Gravel 2026",    date:"2026-08-08",location:"Chapman Valley",color:"#E8644A"},
-  {name:"C-Wise Dwellingup 100",    date:"2026-09-12",location:"Dwellingup",    color:"#4A9EE8"},
-  {name:"Mighty Jarrah Trail Run",  date:"2026-10-17",location:"Dwellingup",    color:"#6BBF72"},
-  {name:"HBF Run for a Reason 2027",date:"2027-03-21",location:"Perth CBD",     color:"#C07FE8"},
-];
-
-// ═══════════════════════════════════════════
-//  STATE — loads from localStorage, falls back to defaults
-// ═══════════════════════════════════════════
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwqqCC0XFKYx7hwVo1XjSki2vp-GKNAuk6mE6g9I2bkFlXbY6CR4Zmx5ISsh4ydti_X/exec';
-
-let state = (()=>{
-  try{
-    const s=localStorage.getItem('tet_v6');
-    if(s){ const p=JSON.parse(s); p.sheetUrl=SHEET_URL; return p; }
-  }catch(e){}
-  return { events:DEFAULT_EVENTS, officeDays:[1,2,3,4,5], closures:[], logoUrl:'', sheetUrl:SHEET_URL };
-})();
-
-// live display data — may be overridden by sheet
-let liveData = null; // null = use state
-
-function saveState(){ try{ localStorage.setItem('tet_v6',JSON.stringify(state)); }catch(e){} }
-
-// ═══════════════════════════════════════════
-//  WA PUBLIC HOLIDAYS
-// ═══════════════════════════════════════════
-function getWAPH(year){
-  const h=new Set();
-  const add=(y,m,d)=>h.add(`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`);
-  const nthDow=(y,m,nth,dow)=>{ let d=new Date(y,m-1,1),c=0; while(true){if(d.getDay()===dow){c++;if(c===nth)return d.getDate()} d.setDate(d.getDate()+1)} };
-  const easter=y=>{ const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h2=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h2-k)%7,m2=Math.floor((a+11*h2+22*l)/451),mo=Math.floor((h2+l-7*m2+114)/31),dy=((h2+l-7*m2+114)%31)+1; return {m:mo,d:dy} };
-  for(const y of [year,year+1]){
-    const ny=new Date(y,0,1); if(ny.getDay()===6) add(y,1,3); else if(ny.getDay()===0) add(y,1,2); else add(y,1,1);
-    const au=new Date(y,0,26); if(au.getDay()===6) add(y,1,28); else if(au.getDay()===0) add(y,1,27); else add(y,1,26);
-    add(y,3,nthDow(y,3,1,1));
-    const {m:em,d:ed}=easter(y); const esu=new Date(y,em-1,ed);
-    [-2,-1,1].forEach(off=>{ const dt=new Date(esu); dt.setDate(dt.getDate()+off); add(dt.getFullYear(),dt.getMonth()+1,dt.getDate()); });
-    const az=new Date(y,3,25); if(az.getDay()===0) add(y,4,26); else add(y,4,25);
-    add(y,6,nthDow(y,6,1,1));
-    const xm=new Date(y,11,25); if(xm.getDay()===6) add(y,12,27); else if(xm.getDay()===0) add(y,12,27); else add(y,12,25);
-    const bx=new Date(y,11,26); if(bx.getDay()===6) add(y,12,28); else if(bx.getDay()===0) add(y,12,28); else if(bx.getDay()===1) add(y,12,27); else add(y,12,26);
+// ── READ — called by the board every 5 minutes ──
+function doGet(e) {
+  try {
+    const data = readAllData();
+    return ContentService
+      .createTextOutput(JSON.stringify(data))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  return h;
 }
 
-// ═══════════════════════════════════════════
-//  UTILS
-// ═══════════════════════════════════════════
-function daysUntil(ds){ const n=new Date();n.setHours(0,0,0,0);return Math.ceil((new Date(ds+'T00:00:00')-n)/86400000); }
+// ── WRITE — called when someone saves from the board ──
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-function officeDaysUntil(ds, officeDays, closures){
-  const now=new Date();now.setHours(0,0,0,0);
-  const tgt=new Date(ds+'T00:00:00');
-  const ph=getWAPH(now.getFullYear());
-  const cl=new Set(closures||[]);
-  let c=0,cur=new Date(now);
-  while(cur<tgt){
-    cur.setDate(cur.getDate()+1);
-    if(!officeDays.includes(cur.getDay())) continue;
-    const k=`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
-    if(!ph.has(k)&&!cl.has(k)) c++;
-  }
-  return c;
-}
-
-function exclusionNote(ds, officeDays, closures){
-  const now=new Date();now.setHours(0,0,0,0);
-  const tgt=new Date(ds+'T00:00:00');
-  const ph=getWAPH(now.getFullYear());
-  const cl=new Set(closures||[]);
-  let p=0,x=0,cur=new Date(now);
-  while(cur<tgt){
-    cur.setDate(cur.getDate()+1);
-    if(!officeDays.includes(cur.getDay())) continue;
-    const k=`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}-${String(cur.getDate()).padStart(2,'0')}`;
-    if(ph.has(k)) p++; else if(cl.has(k)) x++;
-  }
-  const parts=[]; if(p) parts.push(`${p} public holiday${p>1?'s':''}`); if(x) parts.push(`${x} closure${x>1?'s':''}`);
-  return parts.length?`excl. ${parts.join(' & ')}`:'';
-}
-
-function fmtDate(ds){ const d=new Date(ds+'T00:00:00'); return `${DAYS_SH[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`; }
-
-function getEffective(){
-  // Returns the data actually used for display — sheet data takes priority over local state
-  if(liveData) return liveData;
-  return { events:state.events, officeDays:state.officeDays, closures:state.closures };
-}
-
-// ═══════════════════════════════════════════
-//  CLOCK
-// ═══════════════════════════════════════════
-function tick(){
-  const n=new Date();
-  document.getElementById('clock').textContent=n.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
-  document.getElementById('dateline').textContent=`${DAYS_LG[n.getDay()]}  ${n.getDate()} ${MONTHS[n.getMonth()]} ${n.getFullYear()}`;
-}
-setInterval(tick,1000); tick();
-
-// ═══════════════════════════════════════════
-//  LOGO
-// ═══════════════════════════════════════════
-function applyLogo(){
-  const img=document.getElementById('logoImg');
-  const fb=document.getElementById('logoFb');
-  const url=state.logoUrl||'https://static.wixstatic.com/media/d4374a_ca8e69763c6d4e0c8113f4400010c4a7%7Emv2.png/v1/fit/w_400,h_200,al_c/d4374a_ca8e69763c6d4e0c8113f4400010c4a7%7Emv2.png';
-  img.src=url; img.style.display=''; fb.style.display='none';
-}
-
-// ═══════════════════════════════════════════
-//  RENDER
-// ═══════════════════════════════════════════
-function renderHero(){
-  const { events, officeDays, closures } = getEffective();
-  const future=events.map(e=>({...e,days:daysUntil(e.date)})).filter(e=>e.days>=0).sort((a,b)=>a.days-b.days);
-  if(!future.length){
-    document.getElementById('hTotalNum').textContent='—';
-    document.getElementById('hOfficeNum').textContent='—';
-    document.getElementById('hName').textContent='No upcoming events';
-    document.getElementById('hDate').textContent='';
-    return;
-  }
-  const n=future[0]; const col=n.color||'#D4A843';
-  document.getElementById('hTotalNum').style.color=col;
-  document.getElementById('hTotalNum').textContent=n.days;
-  document.getElementById('hOfficeNum').style.color=col;
-  document.getElementById('hOfficeNum').textContent=officeDaysUntil(n.date,officeDays,closures);
-  document.getElementById('hName').textContent=n.name;
-  document.getElementById('hDate').textContent=`${fmtDate(n.date)}${n.location?' · '+n.location:''}`;
-  document.getElementById('heroAccent').style.background=col;
-}
-
-function renderEvents(){
-  const el=document.getElementById('eventList'); el.innerHTML='';
-  const { events, officeDays, closures } = getEffective();
-  const future=events.map(e=>({...e,days:daysUntil(e.date)})).filter(e=>e.days>=0).sort((a,b)=>a.days-b.days).slice(1);
-  if(!future.length){ el.innerHTML='<div style="color:var(--muted);font-size:clamp(11px,1.1vw,15px)">No other events upcoming.</div>'; return; }
-  future.forEach(ev=>{
-    const col=ev.color||'#D4A843';
-    const od=officeDaysUntil(ev.date,officeDays,closures);
-    const note=exclusionNote(ev.date,officeDays,closures);
-    const c=document.createElement('div');
-    c.className='event-card'; c.style.borderLeftColor=col;
-    c.innerHTML=`
-      <div class="ec-counts">
-        <div class="ec-count"><div class="ec-num ec-num-big" style="color:${col}">${ev.days}</div><div class="ec-lbl">total<br>days</div></div>
-        <div class="ec-count-divider"></div>
-        <div class="ec-count"><div class="ec-num ec-num-sm" style="color:${col}">${od}</div><div class="ec-lbl">office<br>days</div></div>
-      </div>
-      <div class="ec-vdiv"></div>
-      <div class="ec-info">
-        <div class="ec-name">${ev.name}</div>
-        <div class="ec-meta">${fmtDate(ev.date)}${ev.location?' · '+ev.location:''}</div>
-        ${note?`<div class="ec-note">${note}</div>`:''}
-      </div>`;
-    el.appendChild(c);
-  });
-}
-
-function renderAll(){ renderHero(); renderEvents(); }
-
-// ═══════════════════════════════════════════
-//  WEATHER
-// ═══════════════════════════════════════════
-async function fetchWeather(){
-  try{
-    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=-31.9505&longitude=115.8605&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=Australia%2FPerth&forecast_days=5');
-    const d=await r.json(); const c=d.current;
-    document.getElementById('wIcon').textContent=WX_ICONS[c.weather_code]||'🌡️';
-    document.getElementById('wTemp').textContent=`${Math.round(c.temperature_2m)}°`;
-    document.getElementById('wDesc').innerHTML=`${WX_DESC[c.weather_code]||''}<br>💧 ${c.relative_humidity_2m}% &nbsp;💨 ${Math.round(c.wind_speed_10m)} km/h`;
-    const fc=document.getElementById('wFc'); fc.innerHTML='';
-    for(let i=1;i<=4;i++){
-      const dt=new Date(d.daily.time[i]+'T00:00:00');
-      fc.innerHTML+=`<div class="wx-day"><div class="wx-day-name">${DAYS_SH[dt.getDay()]}</div><div class="wx-day-icon">${WX_ICONS[d.daily.weather_code[i]]||'🌡️'}</div><div class="wx-day-temp">${Math.round(d.daily.temperature_2m_max[i])}° <span style="color:var(--muted)">${Math.round(d.daily.temperature_2m_min[i])}°</span></div></div>`;
+    // ── Write Events ──
+    if (payload.events && Array.isArray(payload.events)) {
+      const evSheet = ss.getSheetByName('Events');
+      // Clear all data rows below header
+      const lastRow = evSheet.getLastRow();
+      if (lastRow > 1) evSheet.getRange(2, 1, lastRow - 1, 4).clearContent();
+      // Write new rows
+      payload.events.forEach((ev, i) => {
+        evSheet.getRange(i + 2, 1, 1, 4).setValues([[
+          ev.name || '',
+          ev.date || '',
+          ev.location || '',
+          ev.color || '#D4A843'
+        ]]);
+      });
     }
-  }catch(e){ document.getElementById('wDesc').textContent='Unavailable'; }
-}
 
-// ═══════════════════════════════════════════
-//  FUN STRIP
-// ═══════════════════════════════════════════
-async function loadFun(){
-  const n=new Date(); const dm=`${n.getDate()} ${MONTHS[n.getMonth()]}`;
-  const prompt=`Today is ${dm}. Reply ONLY with a valid JSON object, no markdown or backticks:\n{"nationalDay":"name and fun 1-line description of a quirky/fun national day on ${dm}","nationalDayEmoji":"1-2 emojis","birthdays":"2-3 famous people born on ${dm} with birth years e.g. Kanye West (1977) · Prince (1958)","funFact":"one surprising office-safe fun fact — unexpected and conversation-starting"}`;
-  try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})});
-    const data=await r.json();
-    const txt=data.content.map(b=>b.text||'').join('').replace(/```json|```/g,'').trim();
-    const p=JSON.parse(txt);
-    document.getElementById('ndEmoji').textContent=p.nationalDayEmoji||'🎉';
-    document.getElementById('ndText').textContent=p.nationalDay||'—';
-    document.getElementById('bdText').textContent=p.birthdays||'—';
-    document.getElementById('ffText').textContent=p.funFact||'—';
-  }catch(e){
-    document.getElementById('ndText').textContent='World Environment Day — celebrating our planet since 1974!';
-    document.getElementById('ndEmoji').textContent='🌍';
-    document.getElementById('bdText').textContent='Mark Wahlberg (1971) · Pete Wentz (1979) · Ricki Lake (1968)';
-    document.getElementById('ffText').textContent='Honey never expires — archaeologists found 3,000-year-old edible honey in Egyptian tombs.';
+    // ── Write Settings ──
+    const setSheet = ss.getSheetByName('Settings');
+    // Update officeDays row
+    if (payload.officeDays !== undefined) {
+      updateSettingsRow(setSheet, 'officeDays', (payload.officeDays || []).join(','));
+    }
+    if (payload.logoUrl !== undefined) {
+      updateSettingsRow(setSheet, 'logoUrl', payload.logoUrl || '');
+    }
+
+    // ── Write Closures ──
+    if (payload.closures && Array.isArray(payload.closures)) {
+      const clSheet = ss.getSheetByName('Closures');
+      const lastRow = clSheet.getLastRow();
+      if (lastRow > 1) clSheet.getRange(2, 1, lastRow - 1, 2).clearContent();
+      payload.closures.forEach((date, i) => {
+        clSheet.getRange(i + 2, 1, 1, 2).setValues([[date, '']]);
+      });
+    }
+
+    // Return the fresh data so the board can confirm what was saved
+    const fresh = readAllData();
+    return ContentService
+      .createTextOutput(JSON.stringify(fresh))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
 
-// ═══════════════════════════════════════════
-//  GOOGLE SHEET SYNC
-// ═══════════════════════════════════════════
-function showPill(msg, type){
-  const p=document.getElementById('syncPill');
-  p.textContent=msg; p.className='sync-pill show '+(type||'');
-  clearTimeout(p._t); p._t=setTimeout(()=>p.classList.remove('show'),3500);
-}
-
-async function fetchFromSheet(){
-  if(!state.sheetUrl) return;
-  try{
-    const r=await fetch(state.sheetUrl+'?t='+Date.now());
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const data=await r.json();
-    // Validate expected structure
-    if(!data.events || !Array.isArray(data.events)) throw new Error('Invalid data format');
-    liveData = data;
-    renderAll();
-    showPill('✓ Synced from sheet', 'ok');
-  }catch(e){
-    showPill('⚠ Sheet sync failed — using local data', 'err');
-    liveData = null;
-    renderAll();
+// ── Helper: find a key row in Settings and update its value ──
+function updateSettingsRow(sheet, key, value) {
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0]).trim() === key) {
+      sheet.getRange(i + 1, 2).setValue(value);
+      return;
+    }
   }
+  // Key not found — append it
+  sheet.appendRow([key, value]);
 }
 
-async function testSheetConnection(){
-  const url=document.getElementById('sheetUrl').value.trim();
-  const st=document.getElementById('sheetStatus');
-  if(!url){ st.textContent='Please enter a URL first.'; st.className='sheet-status err'; return; }
-  st.textContent='Testing...'; st.className='sheet-status';st.style.display='block';
-  try{
-    const r=await fetch(url+'?t='+Date.now());
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const data=await r.json();
-    if(!data.events) throw new Error('Response missing events array — check your Apps Script');
-    st.textContent=`✓ Connected! Found ${data.events.length} event(s). Click "Save Sheet URL" to use this.`;
-    st.className='sheet-status ok';
-  }catch(e){
-    st.textContent=`✗ Failed: ${e.message}. Double-check your Apps Script URL and that it is deployed as "Anyone" access.`;
-    st.className='sheet-status err';
+// ── Helper: read all data from the sheet into a JS object ──
+function readAllData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Events
+  const evSheet = ss.getSheetByName('Events');
+  const evData = evSheet.getDataRange().getValues();
+  const events = [];
+  for (let i = 1; i < evData.length; i++) {
+    const [name, date, location, color] = evData[i];
+    if (!name || !date) continue;
+    let dateStr = '';
+    if (date instanceof Date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      dateStr = `${y}-${m}-${d}`;
+    } else {
+      dateStr = String(date).trim();
+    }
+    events.push({
+      name: String(name).trim(),
+      date: dateStr,
+      location: String(location || '').trim(),
+      color: String(color || '#D4A843').trim()
+    });
   }
+
+  // Settings
+  const setSheet = ss.getSheetByName('Settings');
+  const setData = setSheet.getDataRange().getValues();
+  const settings = {};
+  for (let i = 1; i < setData.length; i++) {
+    const [key, value] = setData[i];
+    if (key) settings[String(key).trim()] = String(value || '').trim();
+  }
+  const officeDayStr = settings['officeDays'] || '1,2,3,4,5';
+  const officeDays = officeDayStr.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+
+  // Closures
+  const clSheet = ss.getSheetByName('Closures');
+  const closures = [];
+  if (clSheet) {
+    const clData = clSheet.getDataRange().getValues();
+    for (let i = 1; i < clData.length; i++) {
+      const [date] = clData[i];
+      if (!date) continue;
+      if (date instanceof Date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        closures.push(`${y}-${m}-${d}`);
+      } else {
+        const s = String(date).trim();
+        if (s) closures.push(s);
+      }
+    }
+  }
+
+  return { events, officeDays, closures, logoUrl: settings['logoUrl'] || '' };
 }
-
-// ═══════════════════════════════════════════
-//  SETTINGS UI
-// ═══════════════════════════════════════════
-function switchTab(tab){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  document.getElementById('pane-'+tab).classList.add('active');
-}
-
-function openSettings(){
-  // Use live sheet data if available, otherwise fall back to local state
-  const src = liveData || state;
-
-  // Populate local tab from whichever source is active
-  document.getElementById('logoUrl').value=state.logoUrl||'';
-  updateLPrev(state.logoUrl||'');
-  const ed=document.getElementById('eventEditor'); ed.innerHTML='';
-  (src.events||[]).forEach((ev,i)=>ed.appendChild(makeRow(ev,i)));
-  const pk=document.getElementById('officeDayPicker'); pk.innerHTML='';
-  DAYS_LG.forEach((d,i)=>{
-    const lbl=document.createElement('label');
-    lbl.style.cssText='display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer';
-    const cb=document.createElement('input');cb.type='checkbox';cb.value=i;
-    cb.checked=(src.officeDays||state.officeDays).includes(i);
-    cb.style.accentColor='var(--gold)';
-    lbl.appendChild(cb); lbl.appendChild(document.createTextNode(d)); pk.appendChild(lbl);
-  });
-  document.getElementById('closureDates').value=((src.closures||state.closures)||[]).join('\n');
-  // Populate sheet tab
-  document.getElementById('sheetUrl').value=state.sheetUrl||'';
-  document.getElementById('sheetStatus').className='sheet-status';
-  // Show which tab is active based on whether sheet is connected
-  switchTab(state.sheetUrl?'sheet':'local');
-  document.getElementById('overlay').classList.add('open');
-}
-
-function updateLPrev(url){
-  const img=document.getElementById('lpImg'); const em=document.getElementById('lpEmpty');
-  if(url){ img.src=url; img.style.display=''; em.style.display='none'; }
-  else{ img.style.display='none'; em.style.display=''; }
-}
-
-function makeRow(ev,idx){
-  const col=ev.color||DEFAULT_COLORS[idx%DEFAULT_COLORS.length];
-  const wrap=document.createElement('div');
-  wrap.className='er-wrap';
-  wrap.innerHTML=`
-    <div class="er-row1">
-      <input type="text" placeholder="Event name" value="${ev.name||''}" data-f="name">
-      <input type="date" value="${ev.date||''}" data-f="date">
-      <input type="color" value="${col}" data-f="color" title="Pick colour">
-      <button class="btn-del" onclick="this.closest('.er-wrap').remove()">×</button>
-    </div>
-    <div class="er-row2">
-      <input type="text" placeholder="Location (optional)" value="${ev.location||''}" data-f="location">
-    </div>`;
-  return wrap;
-}
-
-function addEventRow(){
-  const ed=document.getElementById('eventEditor');
-  const idx=ed.querySelectorAll('.er-wrap').length;
-  ed.appendChild(makeRow({name:'',date:'',location:'',color:DEFAULT_COLORS[idx%DEFAULT_COLORS.length]},idx));
-}
-
-function closeSettings(){ document.getElementById('overlay').classList.remove('open'); }
-
-function saveLocal(){
-  state.logoUrl=document.getElementById('logoUrl').value.trim();
-  const wraps=document.querySelectorAll('.er-wrap');
-  state.events=[];
-  wraps.forEach(w=>{
-    const n=w.querySelector('[data-f="name"]').value.trim();
-    const d=w.querySelector('[data-f="date"]').value;
-    const l=w.querySelector('[data-f="location"]').value.trim();
-    const c=w.querySelector('[data-f="color"]').value;
-    if(n&&d) state.events.push({name:n,date:d,location:l,color:c});
-  });
-  const cbs=document.querySelectorAll('#officeDayPicker input[type=checkbox]');
-  state.officeDays=[]; cbs.forEach(cb=>{ if(cb.checked) state.officeDays.push(parseInt(cb.value)); });
-  state.closures=document.getElementById('closureDates').value.split('\n').map(s=>s.trim()).filter(s=>/^\d{4}-\d{2}-\d{2}$/.test(s));
-  // If editing locally, clear live sheet data so local takes effect
-  liveData=null;
-  saveState(); applyLogo(); renderAll(); closeSettings();
-}
-
-function saveSheetUrl(){
-  state.sheetUrl=document.getElementById('sheetUrl').value.trim();
-  saveState();
-  closeSettings();
-  if(state.sheetUrl){ fetchFromSheet(); }
-  else{ liveData=null; renderAll(); }
-}
-
-// ═══════════════════════════════════════════
-//  KEYBOARD + INIT
-// ═══════════════════════════════════════════
-document.addEventListener('DOMContentLoaded',()=>{
-  document.getElementById('logoUrl').addEventListener('input',e=>updateLPrev(e.target.value));
-  document.getElementById('logoFile').addEventListener('change',function(){
-    const f=this.files[0]; if(!f) return;
-    const reader=new FileReader();
-    reader.onload=e=>{ document.getElementById('logoUrl').value=e.target.result; updateLPrev(e.target.result); };
-    reader.readAsDataURL(f);
-  });
-});
-
-document.addEventListener('keydown',e=>{
-  if((e.key==='e'||e.key==='E')&&!e.target.matches('input,textarea')) openSettings();
-  if(e.key==='Escape') closeSettings();
-});
-
-// ── Boot ──
-applyLogo();
-renderAll();
-fetchWeather();
-loadFun();
-
-// If sheet URL is saved, start syncing immediately
-if(state.sheetUrl) fetchFromSheet();
-
-// Refresh every minute (render), weather every 20 min, fun strip every 6hrs, sheet every 5 min
-setInterval(renderAll, 60*1000);
-setInterval(fetchWeather, 20*60*1000);
-setInterval(loadFun, 6*60*60*1000);
-setInterval(()=>{ if(state.sheetUrl) fetchFromSheet(); }, 5*60*1000);
-</script>
-</body>
-</html>
